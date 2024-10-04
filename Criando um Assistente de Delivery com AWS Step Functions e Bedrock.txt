@@ -1,0 +1,65 @@
+{
+  "Comment": "Assistente de Delivery usando AWS Step Functions e Bedrock",
+  "StartAt": "ReceberPedido",
+  "States": {
+    "ReceberPedido": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:ReceberPedidoFunction",
+      "Next": "VerificarDisponibilidade"
+      // Esta função recebe o pedido do cliente.
+    },
+    "VerificarDisponibilidade": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:VerificarDisponibilidadeFunction",
+      "Next": "CalcularCustoEntrega"
+      // Esta função verifica se os itens do pedido estão disponíveis em estoque.
+    },
+    "CalcularCustoEntrega": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:CalcularCustoEntregaFunction",
+      "Next": "ConfirmarPedido"
+      // Esta função calcula o custo de entrega do pedido.
+    },
+    "ConfirmarPedido": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.disponibilidade",
+          "BooleanEquals": true,
+          "Next": "ProcessarPagamento"
+          // Se os itens estão disponíveis, prossegue para processar o pagamento.
+        },
+        {
+          "Variable": "$.disponibilidade",
+          "BooleanEquals": false,
+          "Next": "NotificarIndisponibilidade"
+          // Se os itens não estão disponíveis, notifica o cliente sobre a indisponibilidade.
+        }
+      ]
+    },
+    "ProcessarPagamento": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:ProcessarPagamentoFunction",
+      "Next": "NotificarCliente"
+      // Esta função processa o pagamento do cliente.
+    },
+    "NotificarIndisponibilidade": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:NotificarIndisponibilidadeFunction",
+      "End": true
+      // Esta função notifica o cliente que o pedido não pode ser realizado devido à indisponibilidade dos itens.
+    },
+    "NotificarCliente": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:NotificarClienteFunction",
+      "Next": "AcompanharEntrega"
+      // Esta função notifica o cliente que o pedido foi confirmado e o pagamento foi processado.
+    },
+    "AcompanharEntrega": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:AcompanharEntregaFunction",
+      "End": true
+      // Esta função acompanha a entrega do pedido até sua conclusão.
+    }
+  }
+}
